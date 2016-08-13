@@ -11,7 +11,6 @@ Configuration
 plugin.conf
 -----------
 <pre>
-[ow]
 [Viessmann]
     class_name = Viessmann
     class_path = plugins.viessmann
