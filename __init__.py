@@ -24,6 +24,7 @@ import socket
 import threading
 import subprocess
 import time
+import io
 
 class vcex(Exception):
     pass
@@ -51,9 +52,6 @@ class Viessmann():
             self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self._sock.settimeout(5)
             self._sock.connect((self.host, self.port))
-            #read prompt
-            data = self._sock.recv(7)
-            self.logger.debug("viessmann: connect data: {0}".format(data))
         except Exception as e:
             self._connection_attempts -= 1
             if self._connection_attempts <= 0:
@@ -91,13 +89,13 @@ class Viessmann():
             self._lock.release()
             raise vcex("error sending request: {0}".format(e))
         
-        data = b""
+        buffer = io.BytesIO()
         while True:
             try:
-                chunk = self._sock.recv(100)
-                if chunk == b'vctrld>':
+                chunk = self._sock.recv(2048)
+                buffer.write(chunk)
+                if b'\n' in chunk:
                     break
-                data = chunk
             except socket.timeout:
                 self.close()
                 self._lock.release()
@@ -107,7 +105,7 @@ class Viessmann():
                 self._lock.release()
                 raise vcex("error receiving data: {0}".format(e))
         self._lock.release()
-        return data
+        return buffer.getvalue().splitlines()[0]
         
     def run(self):
         self.alive = True
